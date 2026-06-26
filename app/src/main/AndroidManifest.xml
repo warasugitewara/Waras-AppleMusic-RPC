@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- WS/HTTP 通信(Twingate オーバーレイ越しの平文 HTTP/WS) と iTunes 検索 API -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 常駐 WS のためのフォアグラウンドサービス -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- API 34+ : specialUse 型 FGS -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- API 33+ : 常駐通知の表示 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Doze 影響を減らすための電池最適化除外(任意・ユーザー許可制) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <application
+        android:name=".App"
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AppleMusicRpc"
+        tools:targetApi="34">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.AppleMusicRpc">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- メディアセッション監視のアンカー。通知アクセス許可が必要。 -->
+        <service
+            android:name=".service.MediaListenerService"
+            android:exported="false"
+            android:label="@string/listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- 常駐 WS ブリッジ(再生中のみ起動)。 -->
+        <service
+            android:name=".service.RpcBridgeService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <!-- specialUse の用途宣言(API 34+ で必須)。 -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Relays now-playing media metadata to a self-hosted Discord Rich Presence bridge over a private (Twingate) overlay network. The service must hold a persistent WebSocket while the user is listening to music so playback updates appear in real time." />
+        </service>
+
+    </application>
+</manifest>
