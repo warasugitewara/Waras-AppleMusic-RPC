@@ -1,4 +1,4 @@
 <resources>
-    <!-- Material3 DayNight をベースにした最小テーマ。Compose が配色を担う。 -->
-    <style name="Theme.AppleMusicRpc" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- ダーク固定。起動直後の素地もダークにし、配色は Compose の darkColorScheme が担う。 -->
+    <style name="Theme.AppleMusicRpc" parent="android:Theme.Material.NoActionBar" />
 </resources>
