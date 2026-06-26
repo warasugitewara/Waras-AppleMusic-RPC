@@ -130,4 +130,4 @@ cd AppleMusicRpc
 
 ## ライセンス
 
-本体リポジトリに合わせて MIT。© 2026 .warasugi
+MIT. © 2026 .warasugi
