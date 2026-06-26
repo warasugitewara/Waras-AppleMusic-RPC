@@ -8,6 +8,11 @@
 .externalNativeBuild
 .cxx
 
+# 署名(秘匿。リポジトリに含めない)
+/keystore.properties
+*.jks
+*.keystore
+
 # Claude Code / 個人ローカル設定(コミットしない)
 /.claude/
 /CLAUDE.md
