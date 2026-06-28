@@ -119,7 +119,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 - **iTunes Search API は唯一の外部通信**。曲名・アーティストが Apple のサーバに送られる(Twingate 非経由)。気になる場合はアートワークを OFF にできる(画像なしで動作)。
 - **TTL とキープアライブ**: 長い曲でも 20 秒ごとに再送。PC 側 `min_update_interval` は 15 秒なので Discord 反映はそれ以上の間隔に合体される(仕様どおり)。
 - **フォアグラウンドサービス種別は `specialUse`**。用途(自ホストの Discord ブリッジへ再生メタデータを中継)を manifest に宣言済み。`mediaPlayback` は実際に再生しないため不使用。
-- **Twingate 必須**。平文 `ws://` は Twingate オーバーレイ内前提(PROTOCOL のとおりアプリ層 TLS なし)。
+- **Twingate 必須**。平文 `ws://` は Twingate オーバーレイ内前提(PROTOCOL のとおりアプリ層 TLS なし)。Android 9+ は既定で平文を遮断するため、manifest で `android:usesCleartextTraffic="true"` を宣言している(これが無いと `ws://` だけ接続できず、ブラウザは通るのにアプリが失敗する)。
 - **対象パッケージは可変**。既定 `com.apple.android.music`。端末で実パッケージ名が違う場合は設定のカンマ区切りで変更可。
 
 ## 🛠️ トラブルシュート
