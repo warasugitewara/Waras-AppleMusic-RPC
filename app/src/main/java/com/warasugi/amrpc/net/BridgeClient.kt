@@ -63,13 +63,33 @@ class BridgeClient(
     /** 接続中なら送信して true。未接続なら false。 */
     fun send(text: String): Boolean = ws?.send(text) ?: false
 
+    /**
+     * ネットワーク復帰(VPN 再確立・Wi-Fi/モバイル切替)時に呼ぶ。
+     * バックオフ待ちを打ち切り、即座に再接続を試みる。
+     */
+    fun reconnectNow() {
+        if (!shouldRun) return
+        backoffMs = 1_000L
+        reconnectJob?.cancel()
+        ws?.cancel() // 死んだ可能性のある旧ソケットを破棄(onFailure 経由の二重接続を防ぐ)
+        ws = null
+        connect()
+    }
+
     private fun connect() {
         if (!shouldRun) return
         onState(ConnectionState.CONNECTING, "接続中… ($url)")
-        val request = Request.Builder()
-            .url(url)
-            .header("Authorization", "Bearer $token")
-            .build()
+        val request = try {
+            Request.Builder()
+                .url(url)
+                .header("Authorization", "Bearer $token")
+                .build()
+        } catch (e: IllegalArgumentException) {
+            // ホスト入力不正などで URL が組み立てられない場合。クラッシュさせず設定不備として通知する。
+            shouldRun = false
+            onState(ConnectionState.ERROR, "接続先URLが不正です: $url — ホスト設定を確認してください")
+            return
+        }
         ws = client.newWebSocket(request, listener)
     }
 
@@ -112,6 +132,7 @@ class BridgeClient(
 
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             webSocket.close(1000, null)
+            if (webSocket !== ws) return // reconnectNow 等で破棄済みの旧ソケット
             if (code == 4001) {
                 backoffMs = 30_000L // 認証失敗は再試行を急がない
                 scheduleReconnect("認証失敗: トークンが一致しません")
@@ -121,6 +142,7 @@ class BridgeClient(
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+            if (webSocket !== ws) return // 破棄済みの旧ソケットの失敗は無視
             scheduleReconnect("接続失敗: ${t.message ?: t.javaClass.simpleName}")
         }
     }

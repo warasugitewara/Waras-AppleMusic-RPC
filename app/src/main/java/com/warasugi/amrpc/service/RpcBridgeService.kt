@@ -47,6 +47,7 @@ class RpcBridgeService : android.app.Service() {
     private lateinit var settings: Settings
     private lateinit var client: BridgeClient
     private lateinit var artwork: ArtworkResolver
+    private var networkCallback: android.net.ConnectivityManager.NetworkCallback? = null
 
     private val sendMutex = Mutex()
     @Volatile private var lastSent: PlaybackSnapshot? = null
@@ -78,6 +79,37 @@ class RpcBridgeService : android.app.Service() {
 
         scope.launch { collectPlayback() }
         scope.launch { keepaliveLoop() }
+        registerNetworkCallback()
+    }
+
+    /**
+     * ネットワーク変化(Wi-Fi↔モバイル切替、Twingate トンネル再確立)を検知したら
+     * バックオフ待ちを打ち切って即再接続する。検知しないと OkHttp の ping 失敗
+     * (最長20秒)+指数バックオフ(最長30秒)まで復帰が遅れる。
+     */
+    private fun registerNetworkCallback() {
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        val cb = object : android.net.ConnectivityManager.NetworkCallback() {
+            private var lastNetwork: android.net.Network? = null
+            private var seenFirst = false
+            override fun onAvailable(network: android.net.Network) {
+                val isFirst = !seenFirst
+                seenFirst = true
+                val same = lastNetwork == network
+                lastNetwork = network
+                // 登録直後の初回通知では張り直さない。経路が変わった/復帰した時のみ。
+                if (!isFirst && !same && settings.isConfigured) client.reconnectNow()
+            }
+            override fun onLost(network: android.net.Network) {
+                if (lastNetwork == network) lastNetwork = null
+            }
+        }
+        try {
+            cm.registerDefaultNetworkCallback(cb)
+            networkCallback = cb
+        } catch (_: RuntimeException) {
+            // コールバック上限などで登録できなくても致命的ではない(従来のバックオフで復帰する)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -102,6 +134,10 @@ class RpcBridgeService : android.app.Service() {
     }
 
     override fun onDestroy() {
+        networkCallback?.let {
+            getSystemService(android.net.ConnectivityManager::class.java)?.unregisterNetworkCallback(it)
+        }
+        networkCallback = null
         client.stop()
         scope.cancel()
         BridgeStatus.reset()
