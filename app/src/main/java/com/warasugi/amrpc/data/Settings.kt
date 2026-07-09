@@ -19,7 +19,7 @@ class Settings(context: Context) {
     /** PC の到達先。Twingate の Resource DNS か IP。例: 100.x.x.x または pc.twingate */
     var host: String
         get() = prefs.getString(KEY_HOST, "") ?: ""
-        set(v) = prefs.edit().putString(KEY_HOST, v.trim()).apply()
+        set(v) = prefs.edit().putString(KEY_HOST, sanitizeHost(v)).apply()
 
     var port: Int
         get() = prefs.getInt(KEY_PORT, 13520)
@@ -72,13 +72,35 @@ class Settings(context: Context) {
         set(v) = prefs.edit().putInt(KEY_GRACE, v.coerceIn(5, 300)).apply()
 
     val wsUrl: String
-        get() = "ws://$host:$port/ws"
+        get() {
+            // 生の IPv6 アドレスは URL 上ブラケットが必要。
+            val h = if (host.contains(":") && !host.startsWith("[")) "[$host]" else host
+            return "ws://$h:$port/ws"
+        }
 
     val isConfigured: Boolean
         get() = host.isNotBlank() && token.isNotBlank()
 
     companion object {
         private const val DEFAULT_PKG = "com.apple.android.music"
+
+        /**
+         * ホスト入力の揺れを吸収する。スキーム(http:// や ws://)・パス・
+         * 末尾スラッシュ・「host:port」形式のポート混入を取り除き、
+         * ホスト名/IP だけにする(混入すると URL 組み立てが不正になり接続不能になる)。
+         */
+        fun sanitizeHost(raw: String): String {
+            var h = raw.trim()
+            h = h.replace(Regex("^[a-zA-Z][a-zA-Z0-9+.-]*://"), "") // スキーム除去
+            h = h.substringBefore('/')                               // パス除去
+            // [::1]:port / host:port のポート混入を除去(生 IPv6 は温存)
+            h = when {
+                h.startsWith("[") -> h.substringBefore(']').removePrefix("[")
+                h.count { it == ':' } == 1 -> h.substringBefore(':')
+                else -> h
+            }
+            return h.trim()
+        }
         private const val KEY_ENABLED = "enabled"
         private const val KEY_HOST = "host"
         private const val KEY_PORT = "port"

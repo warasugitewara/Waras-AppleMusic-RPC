@@ -128,7 +128,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 |---|---|
 | `認証失敗` と出る / すぐ切れる | `BRIDGE_TOKEN` が PC 側と一致しているか。不一致だと `close(4001)`。 |
 | 何も表示されない | PC 側で `phone-music` が有効・優先度が適切か。`GET /health` で `active_source` を確認。 |
-| 接続できない | 端末の Twingate が接続済みか。ホスト/ポートが正しいか。PC の `bind` が到達可能か。 |
+| 接続できない | **まず端末のブラウザで `http://<ホスト>:<ポート>/ping` を開く**(認証不要)。`{"pong": true}` が出れば経路は正常でアプリ設定(トークン等)の問題、出なければ Twingate / Windows ファイアウォール / PC 側 `bind` の問題。詳細は PC 側リポジトリの `docs/TROUBLESHOOTING.md`。 |
 | 再生開始で自動起動しない | アプリを開いて「電池最適化から除外」を許可(Android 12+ の exemption)。 |
 | 曲の途中で消える | キープアライブが届いていない可能性。電池最適化除外と通知アクセスを確認。 |
 | アートワークが出ない | iTunes 検索がヒットしていないか、アートワークが OFF。ストアフロント(国)を確認。 |
