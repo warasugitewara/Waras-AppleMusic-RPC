@@ -65,7 +65,7 @@ flowchart LR
 <tr><td valign="top">
 
 1. `Waras-discordRPC` が起動済み(`python app.py` か配布 exe)
-2. `config.json` の `network_mode` を `twingate`、`bind` を到達可能な IP(または `0.0.0.0`)、`port` 既定 `13520`
+2. 設定の「接続」タブでネットワークモードを **LAN全体**(`network_mode=lan` = `0.0.0.0`)にする(既定の「ローカルのみ」=`127.0.0.1` ではスマホから届かない)。`port` 既定 `13520`。変更後は PC 側アプリを再起動
 3. `.env` の `BRIDGE_TOKEN` を設定(アプリ側と同値)
 4. Discord デスクトップ起動 + `DISCORD_CLIENT_ID` 設定済み
 5. ソース `phone-music` を有効化
